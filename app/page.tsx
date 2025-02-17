@@ -8,7 +8,7 @@ import { CalendarIcon } from '@heroicons/react/24/outline';
 import 'react-datepicker/dist/react-datepicker.css';
 
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState(2);
+  const [currentStep, setCurrentStep] = useState(1);
 
   type FormData = {
     fullName: string;
