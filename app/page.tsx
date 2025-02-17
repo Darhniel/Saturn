@@ -9,13 +9,64 @@ import 'react-datepicker/dist/react-datepicker.css';
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(2);
-  // This holds all data across the steps
-  const [formData, setFormData] = useState({
+
+  type FormData = {
+    fullName: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+
+    // Step 2 fields
+    dob: string;
+    address: string;
+    investment: string;
+    portfolioType: string[];
+    accountType: string;
+  };
+
+  const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    dob: "",
+    address: "",
+    investment: "",
+    portfolioType: [],
+    accountType: ""
   });
+
+  type StepOneProps = {
+    data: Pick<FormData,
+      'fullName' |
+      'email' |
+      'password' |
+      'confirmPassword'
+    >;
+    onNext: (stepData: Pick<FormData,
+      'fullName' |
+      'email' |
+      'password' |
+      'confirmPassword'
+    >) => void;
+  };
+
+  type StepTwoProps = {
+    data: Pick<FormData,
+      'dob' |
+      'address' |
+      'investment' |
+      'portfolioType' |
+      'accountType'
+    >;
+    onNext: (stepData: Pick<FormData,
+      'dob' |
+      'address' |
+      'investment' |
+      'portfolioType' |
+      'accountType'
+    >) => void;
+  };
 
   function ProgressBar() {
     return (
@@ -36,24 +87,34 @@ export default function Home() {
     );
   };
 
-  const handleNext = (stepData: any) => {
-    setFormData((prev) => ({ ...prev, ...stepData }));
-    setCurrentStep((prev) => prev + 1);
+  const handleNext = (stepData: Partial<FormData>) => {
+    setFormData(prev => ({
+      ...prev,
+      ...stepData
+    }));
+    setCurrentStep(prev => prev + 1);
   };
 
-  const handlePrev = () => {
-    setCurrentStep((prev) => prev - 1);
-  };
+  // const handlePrev = () => {
+  //   setCurrentStep((prev) => prev - 1);
+  // };
 
-  const handleSubmitAll = (finalData: any) => {
-    // In a real app, send finalData to your backend API
-    // e.g. fetch('/api/register', { method: 'POST', body: JSON.stringify(finalData) })
-    console.log("Submitting final data:", finalData);
-    alert("All steps completed! Check console for final data.");
-  };
+  // const handleSubmitAll = (finalData: any) => {
+  //   // In a real app, send finalData to your backend API
+  //   // e.g. fetch('/api/register', { method: 'POST', body: JSON.stringify(finalData) })
+  //   console.log("Submitting final data:", finalData);
+  //   alert("All steps completed! Check console for final data.");
+  // };
 
-  function StepOne({ data, onNext } : any) {
-    const [localData, setLocalData] = useState({
+  function StepOne({ onNext }: StepOneProps) {
+    interface LocalData {
+      fullName: string;
+      email: string;
+      password: string;
+      confirmPassword: string;
+    }
+
+    const [localData, setLocalData] = useState<LocalData>({
       fullName: '',
       email: '',
       password: '',
@@ -373,21 +434,24 @@ export default function Home() {
     )
   }
 
-  function StepTwo({ data, onNext } : any) {
+
+
+  function StepTwo({ data, onNext }: StepTwoProps) {
     const today = new Date();
     const preciseEighteenYearsAgo = new Date(
       today.getFullYear() - 18,
       today.getMonth(),
       today.getDate()
     );
+
     const [startDate, setStartDate] = useState<Date | null>(null);
 
     const [localData, setLocalData] = useState({
-      dob: data.dob || "",
-      address: data.address || "",
-      investment: data.investment || "",
-      portfolioType: data.portfolioType || "",
-      accountType: data.accountType || ""
+      dob: data.dob,
+      address: data.address,
+      investment: data.investment,
+      portfolioType: data.portfolioType,
+      accountType: data.accountType
     });
 
     const [errors, setErrors] = useState({
@@ -401,6 +465,21 @@ export default function Home() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       const { name, value } = e.target;
+
+      if (name === "portfolioType") {
+        // Ignore the default option
+        if (value !== "" && !localData.portfolioType.includes(value)) {
+          setLocalData((prev) => ({
+            ...prev,
+            portfolioType: [...prev.portfolioType, value],
+          }));
+
+          // Optionally, clear any error for portfolio type:
+          setErrors((prev) => ({ ...prev, portfolioError: false }));
+        }
+        return; // Exit early since we've handled portfolioType
+      }
+
       const newLocalData = {
         ...localData,
         [name]: value,
@@ -424,15 +503,6 @@ export default function Home() {
         }
       }
 
-      // Validate portfolio type
-      if (name === "portfolioType") {
-        if (value === "") {
-          setErrors(prev => ({ ...prev, portfolioError: true }))
-        } else {
-          setErrors(prev => ({ ...prev, portfolioError: false }))
-        }
-      }
-
       // Validate account type
       if (name === "accountType") {
         if (value === "") {
@@ -446,7 +516,7 @@ export default function Home() {
     };
 
     function complete() {
-      if (errors.dateError || errors.addressError || errors.investmentError || errors.portfolioError || errors.accountError || localData.dob === "" || localData.address === "" || localData.investment === "" || localData.portfolioType === "" || localData.accountType === "") {
+      if (errors.dateError || errors.addressError || errors.investmentError || errors.portfolioError || errors.accountError || localData.dob === "" || localData.address === "" || localData.investment === "" || localData.portfolioType.length === 0 || localData.accountType === "") {
         return true;
       }
 
@@ -630,6 +700,7 @@ export default function Home() {
               <select
                 className="appearance-none w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 cursor-pointer"
                 name='portfolioType'
+                value={""}
                 onChange={handleChange}
               >
                 <option value="">Select Portfolio Type</option>
@@ -645,10 +716,40 @@ export default function Home() {
               </select>
 
               <div className="absolute top-[45%] right-3 -translate-y-1/2 pointer-events-none cursor-pointer">
-                {/* Replace this with your own SVG or icon component */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6" /></svg>
               </div>
             </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {localData.portfolioType.map((option, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full cursor-pointer hover:bg-purple-200"
+                  onClick={() =>
+                    setLocalData((prev) => ({
+                      ...prev,
+                      portfolioType: prev.portfolioType.filter((item) => item !== option),
+                    }))
+                  }
+                >
+                  {option}
+                  {/* An "x" icon for removal */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="ml-1 h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 011.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              ))}
+            </div>
+
 
             {errors.portfolioError &&
               <div className='flex gap-1 items-center'>
