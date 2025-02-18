@@ -244,7 +244,7 @@ export default function Home() {
     };
 
     return (
-      <div className="w-full max-w-[25.5rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
+      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
         <h2 className="text-2xl font-bold mb-4 text-black">
           Account Registration
         </h2>
@@ -540,7 +540,7 @@ export default function Home() {
     };
 
     return (
-      <div className="w-full max-w-[25.5rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
+      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
         <h2 className="text-2xl font-bold mb-4 text-black">
           Profile Setup
         </h2>
@@ -921,7 +921,7 @@ export default function Home() {
     return (
       <div>
         {/* Card Container */}
-        <div className="w-full max-w-[25.5rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
+        <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
           {/* Heading */}
           <h1 className="text-2xl font-bold mb-2 text-black">KYC Uploads</h1>
           <p className="text-sm text-gray-500 mb-6">
