@@ -109,11 +109,26 @@ export default function Home() {
     }
   };
 
-  // In a real app you would send this to your backend.
-  const handleSubmitAll = (finalData: FormData) => {
-    console.log("Submitting final data:", finalData);
-    setSuccess(true);
-    alert("All steps completed!");
+  async function handleSubmitAll(finalData: FormData) {
+    try {
+      const response = await fetch("https://samplebackend.onrender.com/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(finalData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      console.log("Submission successful:", result);
+      setSuccess(true);
+      alert("Submission Successful")
+    } catch (error) {
+      console.error("Error submitting data:", error);
+      alert("Submission failed. Please try again.");
+    }
   };
 
   // Render the proper step based on the current step value.
@@ -1541,6 +1556,8 @@ function StepFive({ data, onNext }: StepFiveProps) {
                   src={fileObj.previewUrl}
                   alt={fileObj.file.name}
                   className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
                 />
               ) : (
                 // Otherwise, show PDF icon or error icon
