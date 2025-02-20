@@ -131,23 +131,23 @@ export default function Home() {
     return (
       <div className="flex space-x-2 mb-8 w-[31rem]">
         <div
-          className={`w-24 h-2 rounded-2xl ${currentStep === 1 ? "bg-white" : "bg-white/50"
+          className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 1 ? "bg-white" : "bg-white/50"
             }`}
         />
         <div
-          className={`w-24 h-2 rounded-2xl ${currentStep === 2 ? "bg-white" : "bg-white/50"
+          className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 2 ? "bg-white" : "bg-white/50"
             }`}
         />
         <div
-          className={`w-24 h-2 rounded-2xl ${currentStep === 3 ? "bg-white" : "bg-white/50"
+          className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 3 ? "bg-white" : "bg-white/50"
             }`}
         />
         <div
-          className={`w-24 h-2 rounded-2xl ${currentStep === 4 ? "bg-white" : "bg-white/50"
+          className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 4 ? "bg-white" : "bg-white/50"
             }`}
         />
         <div
-          className={`w-24 h-2 rounded-2xl ${currentStep === 5 ? "bg-white" : "bg-white/50"
+          className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 5 ? "bg-white" : "bg-white/50"
             }`}
         />
       </div>
