@@ -414,7 +414,7 @@ function StepOne({ data, onNext }: StepOneProps) {
       <form onSubmit={handleSubmit}>
         {/* Account Type Selection */}
         <div className="mb-4 flex gap-12">
-          <label className={`w-full p-6 border rounded-xl ${localData.accountType === 'Personal Account' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
+          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.accountType === 'Personal Account' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
             <div className="relative">
               <input
                 type="radio"
@@ -432,7 +432,7 @@ function StepOne({ data, onNext }: StepOneProps) {
             </span>
           </label>
 
-          <label className={`w-full p-6 border rounded-xl ${localData.accountType === 'Business Account' ? "border-purple-600 bg-purple-100" : "border-gray-300"}`}>
+          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.accountType === 'Business Account' ? "border-purple-600 bg-purple-100" : "border-gray-300"}`}>
             <div className="relative">
               <input
                 type="radio"
