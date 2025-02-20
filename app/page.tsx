@@ -129,7 +129,7 @@ export default function Home() {
 
   function ProgressBar() {
     return (
-      <div className="flex space-x-2 mb-8 w-[31rem]">
+      <div className="flex space-x-2 mb-8 w-full max-w-[31rem]">
         <div
           className={`w-1/5 max-w-24 h-2 rounded-2xl ${currentStep === 1 ? "bg-white" : "bg-white/50"
             }`}
