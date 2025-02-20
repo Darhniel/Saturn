@@ -1,7 +1,7 @@
 'use client'
 import { Check } from 'lucide-react';
 import Image from 'next/image';
-import React, { useEffect, useState, useRef, FC } from 'react';
+import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -1480,7 +1480,7 @@ export default function Home() {
               >
                 {/* If it's an image and no error, show preview */}
                 {!fileObj.error && fileObj.previewUrl ? (
-                  <img
+                  <Image
                     src={fileObj.previewUrl}
                     alt={fileObj.file.name}
                     className="w-12 h-12 object-cover rounded"
