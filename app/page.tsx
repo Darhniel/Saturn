@@ -1,13 +1,17 @@
 'use client'
 import { Check } from 'lucide-react';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, FC } from 'react';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import 'react-datepicker/dist/react-datepicker.css';
+// import { useRouter } from 'next/router';
+
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [success, setSuccess] = useState(true);
+  // const router = useRouter();
 
   type FormData = {
     fullName: string;
@@ -22,6 +26,16 @@ export default function Home() {
     portfolioType: string[];
     accountType: string;
 
+    // Step 3 fields
+    investmentAmount: string,
+    investmentType: string,
+    investmentDuration: string,
+
+    // Step 4 fields
+    bankName: string,
+    accountNumber: string,
+
+    // Step 5 fields
     files: File[]
   };
 
@@ -35,6 +49,11 @@ export default function Home() {
     investment: "",
     portfolioType: [],
     accountType: "",
+    investmentAmount: "",
+    investmentType: "",
+    investmentDuration: "",
+    bankName: "",
+    accountNumber: "",
     files: []
   });
 
@@ -43,7 +62,8 @@ export default function Home() {
       'fullName' |
       'email' |
       'password' |
-      'confirmPassword'
+      'confirmPassword' |
+      'accountType'
     >;
     onNext: (stepData: Pick<FormData,
       'fullName' |
@@ -58,19 +78,41 @@ export default function Home() {
       'dob' |
       'address' |
       'investment' |
-      'portfolioType' |
-      'accountType'
+      'portfolioType'
     >;
     onNext: (stepData: Pick<FormData,
       'dob' |
       'address' |
       'investment' |
-      'portfolioType' |
-      'accountType'
+      'portfolioType'
     >) => void;
   };
 
   type StepThreeProps = {
+    data: Pick<FormData,
+      'investmentAmount' |
+      'investmentType' |
+      'investmentDuration'
+    >;
+    onNext: (stepData: Pick<FormData,
+      'investmentAmount' |
+      'investmentType' |
+      'investmentDuration'
+    >) => void
+  }
+
+  type StepFourProps = {
+    data: Pick<FormData,
+      'bankName' |
+      'accountNumber'
+    >;
+    onNext: (stepData: Pick<FormData,
+      'bankName' |
+      'accountNumber'
+    >) => void
+  }
+
+  type StepFiveProps = {
     data: Pick<FormData, 'files' | 'accountType'>;
     onNext: (stepData: Pick<FormData, 'files'>) => void;
   };
@@ -87,7 +129,7 @@ export default function Home() {
 
   function ProgressBar() {
     return (
-      <div className="flex space-x-2 mb-8 w-[19rem]">
+      <div className="flex space-x-2 mb-8 w-[31rem]">
         <div
           className={`w-24 h-2 rounded-2xl ${currentStep === 1 ? "bg-white" : "bg-white/50"
             }`}
@@ -100,18 +142,73 @@ export default function Home() {
           className={`w-24 h-2 rounded-2xl ${currentStep === 3 ? "bg-white" : "bg-white/50"
             }`}
         />
+        <div
+          className={`w-24 h-2 rounded-2xl ${currentStep === 4 ? "bg-white" : "bg-white/50"
+            }`}
+        />
+        <div
+          className={`w-24 h-2 rounded-2xl ${currentStep === 5 ? "bg-white" : "bg-white/50"
+            }`}
+        />
       </div>
     );
   };
 
   const handleNext = (stepData: Partial<FormData>) => {
     setFormData(prev => ({ ...prev, ...stepData }));
-    if (currentStep === 3) {
+    if (currentStep === 5) {
       handleSubmitAll({ ...formData, ...stepData });
     } else {
       setCurrentStep(prev => prev + 1);
     }
   };
+
+  function Success() {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-9 max-w-[35rem] w-full text-center border-2 ">
+        {/* Checkmark Icon */}
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-50 mx-auto mb-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-xl font-bold mb-2 text-[#1C1B1F]">Account Successfully Created</h2>
+
+        {/* Subtitle */}
+        <p className="text-[#8C8B90] mb-10">
+          Your account has been successfully created! Get started by setting up your
+          profile and verifying your details.
+        </p>
+
+        {/* Buttons */}
+        <div className="flex justify-center space-x-4">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-lg border border-purple-600 text-purple-600 hover:bg-purple-50"
+            onClick={() => window.location.reload()}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+            onClick={() => window.location.reload()}
+          >
+            Make Payment
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // const handlePrev = () => {
   //   setCurrentStep((prev) => prev - 1);
@@ -121,7 +218,8 @@ export default function Home() {
     // In a real app, send finalData to your backend API
     // e.g. fetch('/api/register', { method: 'POST', body: JSON.stringify(finalData) })
     console.log("Submitting final data:", finalData);
-    alert("All steps completed! Check console for final data.");
+    setSuccess(false)
+    alert("All steps completed!");
   };
 
   function StepOne({ onNext }: StepOneProps) {
@@ -130,20 +228,23 @@ export default function Home() {
       email: string;
       password: string;
       confirmPassword: string;
+      accountType: string
     }
 
     const [localData, setLocalData] = useState<LocalData>({
       fullName: '',
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      accountType: 'Personal Account'
     });
 
     const [errors, setErrors] = useState({
       emailError: false,
       nameError: false,
       passwordError: false,
-      confirmPasswordError: false
+      confirmPasswordError: false,
+      accountTypeError: false
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -226,6 +327,7 @@ export default function Home() {
 
       // Finally, set state once using the newLocalData
       setLocalData(newLocalData);
+      // console.log(newLocalData)
     };
 
     function complete() {
@@ -249,11 +351,51 @@ export default function Home() {
           Account Registration
         </h2>
         <p className="text-sm text-[#8C8B90] mb-6">
-          Create your account by entering your details to get started.
-          Secure, quick, and hassle-free registration.
+          Sign up to get started on your Saturn journey.  Fill in your details to begin
         </p>
 
         <form action="" onSubmit={handleSubmit}>
+          {/* Account Type */}
+          <div className="mb-4 flex gap-12">
+            <label htmlFor='accountTypePersonal' className={`max-w-48 p-6 border rounded-xl ${localData.accountType === 'Personal Account' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
+              <div className="relative">
+                <input
+                  type="radio"
+                  name="accountType"
+                  id="accountTypePersonal"
+                  value={"Personal Account"}
+                  className={`block w-5 h-5 mb-3 appearance-none peer opacity-0 relative z-10 cursor-pointer`}
+                  checked={localData.accountType === 'Personal Account'}
+                  onChange={handleChange}
+                />
+                <div className='absolute w-5 h-5 border rounded-full border-[#D0D5DD] top-1 peer-checked:border-[#8627ff] transition-all'></div>
+                <div className="peer-checked:bg-[#8627FF] peer-checked:block w-3 h-3 rounded-full top-2 left-1 absolute"></div>
+              </div>
+              <span className={`text-base ${localData.accountType === 'Personal Account' ? 'font-semibold text-[#5F1CB5]' : 'text-black'}`}>
+                Personal Account
+              </span>
+            </label>
+
+            <label htmlFor='accountTypeBusiness' className={`max-w-48 p-6 border rounded-xl ${localData.accountType === 'Business Account' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
+              <div className="relative">
+                <input
+                  type="radio"
+                  name="accountType"
+                  id="accountTypeBusiness"
+                  value={"Business Account"}
+                  className={`block w-5 h-5 mb-3 appearance-none peer opacity-0 relative z-10 cursor-pointer`}
+                  checked={localData.accountType === 'Business Account'}
+                  onChange={handleChange}
+                />
+                <div className='absolute w-5 h-5 border rounded-full border-[#D0D5DD] top-1 peer-checked:border-[#8627ff] peer-checked:border transition-all'></div>
+                <div className="hidden bg-[#8627FF] peer-checked:block w-3 h-3 rounded-full top-2 left-1 absolute"></div>
+              </div>
+              <span className={`text-base ${localData.accountType === 'Business Account' ? 'font-semibold text-[#5F1CB5]' : 'text-black'}`}>
+                Business Account
+              </span>
+            </label>
+          </div>
+
           {/* Full Name */}
           <div className="mb-4">
             <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="fullName">
@@ -462,15 +604,13 @@ export default function Home() {
       address: data.address,
       investment: data.investment,
       portfolioType: data.portfolioType,
-      accountType: data.accountType
     });
 
     const [errors, setErrors] = useState({
       dateError: false,
       addressError: false,
       investmentError: false,
-      portfolioError: false,
-      accountError: false,
+      portfolioError: false
     });
 
 
@@ -514,20 +654,11 @@ export default function Home() {
         }
       }
 
-      // Validate account type
-      if (name === "accountType") {
-        if (value === "") {
-          setErrors(prev => ({ ...prev, accountError: true }))
-        } else {
-          setErrors(prev => ({ ...prev, accountError: false }))
-        }
-      }
-
       setLocalData(newLocalData);
     };
 
     function complete() {
-      if (errors.dateError || errors.addressError || errors.investmentError || errors.portfolioError || errors.accountError || localData.dob === "" || localData.address === "" || localData.investment === "" || localData.portfolioType.length === 0 || localData.accountType === "") {
+      if (errors.dateError || errors.addressError || errors.investmentError || errors.portfolioError || localData.dob === "" || localData.address === "" || localData.investment === "" || localData.portfolioType.length === 0) {
         return true;
       }
 
@@ -775,31 +906,108 @@ export default function Home() {
             }
           </div>
 
-          {/* Account Type */}
-          <div className="mb-6">
-            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="accountType">
-              Account Type
-            </label>
-            <div className='relative w-full'>
-              <select
-                className="appearance-none w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 cursor-pointer"
-                name='accountType'
-                onChange={handleChange}
-              >
-                <option value="">Select Account Type</option>
-                <option value="Individual Account" className='text-[#7C7C7A]'>
-                  Individual Account
-                </option>
-                <option value="Business Account" className='text-[#7C7C7A]'>
-                  Business Account
-                </option>
-              </select>
+          {/* Proceed Button */}
+          <button
+            type="submit"
+            className={`w-full text-white py-2 rounded transition-colors ${complete() ? "bg-[#D9D9D9]" : "bg-[#8627FF]"} `}
+            disabled={complete()}
+          >
+            Proceed
+          </button>
+        </form>
+      </div>
+    )
+  }
 
-              <div className="absolute top-[45%] right-3 -translate-y-1/2 pointer-events-none cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6" /></svg>
-              </div>
-            </div>
-            {errors.accountError &&
+  function StepThree({ data, onNext }: StepThreeProps) {
+    const [localData, setLocalData] = useState({
+      investmentAmount: data.investmentAmount,
+      investmentType: data.investmentType,
+      investmentDuration: data.investmentDuration
+    });
+
+    const [errors, setErrors] = useState({
+      investmentAmountError: false,
+      investmentTypeError: false,
+      investmentDurationError: false
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      const newLocalData = {
+        ...localData,
+        [name]: value,
+      };
+
+      // Validate Investment Amount
+      if (name === "investmentAmount") {
+        if (value === "" || /[a-z]/.test(value) || /[A-Z]/.test(value) || /[!@#$%^&*()_+\-=\[\]{};':"\\|.<>\/?]/.test(value)) {
+          setErrors((prev) => ({ ...prev, investmentAmountError: true }));
+        } else {
+          setErrors((prev) => ({ ...prev, investmentAmountError: false }));
+        }
+      }
+
+      // Validate Investment Type
+      if (name === "investmentType") {
+        if (value === "") {
+          setErrors((prev) => ({ ...prev, investmentTypeError: true }));
+        } else {
+          setErrors((prev) => ({ ...prev, investmentTypeError: false }));
+        }
+      }
+
+      // Validate Investment Duration
+      if (name === "investmentDuration") {
+        if (value === "") {
+          setErrors((prev) => ({ ...prev, investmentDurationError: true }));
+        } else {
+          setErrors((prev) => ({ ...prev, investmentDurationError: false }));
+        }
+      }
+
+      setLocalData(newLocalData);
+      // console.log(newLocalData)
+    }
+
+    function complete() {
+      if (errors.investmentAmountError || errors.investmentTypeError || errors.investmentDurationError || localData.investmentAmount === "" || localData.investmentType === "" || localData.investmentDuration === "") {
+        return true;
+      }
+
+      return false;
+    }
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      onNext(localData);
+    };
+
+    return (
+      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
+        <h2 className="text-2xl font-bold mb-4 text-black">
+          Investment Details
+        </h2>
+        <p className="text-sm text-[#8C8B90] mb-6">
+          Enter your investment details to get started. Make sure all information is accurate.
+        </p>
+
+        <form action="" onSubmit={handleSubmit}>
+          {/* Investment Amount */}
+          <div className="mb-4">
+            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="investmentAmount">
+              Investment Amount ($)
+            </label>
+            <input
+              id="investmentAmount"
+              type="text"
+              placeholder="Enter Amount"
+              className="w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
+              name='investmentAmount'
+              value={localData.investmentAmount}
+              onChange={handleChange}
+            />
+            {errors.investmentAmountError &&
               <div className='flex gap-1 items-center'>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#d02a2a" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info">
                   <circle cx="12" cy="12" r="10" />
@@ -807,7 +1015,290 @@ export default function Home() {
                   <path d="M12 8h.01" />
                 </svg>
                 <span className="text-sm text-[#D02A2A] font-medium">
-                  Please select a valid account type
+                  Please enter a valid investment amount
+                </span>
+              </div>
+            }
+          </div>
+
+          {/* Investment Type */}
+          <div className="mb-6">
+            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="investmentType">
+              Investment Type
+            </label>
+            <div className='relative w-full'>
+              <select
+                className="appearance-none w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 cursor-pointer"
+                name='investmentType'
+                onChange={handleChange}
+              >
+                <option value="">Select Type</option>
+                <option value="One Time" className='text-[#7C7C7A]'>
+                  One Time
+                </option>
+                <option value="Recurring" className='text-[#7C7C7A]'>
+                  Recurring
+                </option>
+              </select>
+
+              <div className="absolute top-[45%] right-3 -translate-y-1/2 pointer-events-none cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6" /></svg>
+              </div>
+            </div>
+            {errors.investmentTypeError &&
+              <div className='flex gap-1 items-center'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#d02a2a" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                <span className="text-sm text-[#D02A2A] font-medium">
+                  Please select an investment type
+                </span>
+              </div>
+            }
+          </div>
+
+          {/* Investment Duration */}
+          <div className="mb-6">
+            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="investmentDuration">
+              Investment Duration
+            </label>
+            <div className='relative w-full'>
+              <select
+                className="appearance-none w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 cursor-pointer"
+                name='investmentDuration'
+                onChange={handleChange}
+              >
+                <option value="">Select Duration</option>
+                <option value="3 Months" className='text-[#7C7C7A]'>
+                  3 Months
+                </option>
+                <option value="6 Months" className='text-[#7C7C7A]'>
+                  6 Months
+                </option>
+                <option value="1 year" className='text-[#7C7C7A]'>
+                  1 year
+                </option>
+              </select>
+
+              <div className="absolute top-[45%] right-3 -translate-y-1/2 pointer-events-none cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6" /></svg>
+              </div>
+            </div>
+            {errors.investmentTypeError &&
+              <div className='flex gap-1 items-center'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#d02a2a" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                <span className="text-sm text-[#D02A2A] font-medium">
+                  Please select an investment type
+                </span>
+              </div>
+            }
+          </div>
+
+          {/* Proceed Button */}
+          <button
+            type="submit"
+            className={`w-full text-white py-2 rounded transition-colors ${complete() ? "bg-[#D9D9D9]" : "bg-[#8627FF]"} `}
+            disabled={complete()}
+          >
+            Proceed
+          </button>
+        </form>
+      </div>
+    )
+
+  }
+
+  function StepFour({ data, onNext }: StepFourProps) {
+
+    const [localData, setLocalData] = useState({
+      bankName: data.bankName,
+      accountNumber: data.accountNumber
+    });
+
+    const banks = [
+      { name: 'Access Bank', image: "/access.svg" },
+      { name: 'First Bank', image: "/first-bank.svg" },
+      { name: 'Kuda', image: "/kuda.svg" },
+      { name: 'Opay', image: "/opay.svg" },
+    ]
+
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    const handleBankSelect = (bankName: string) => {
+      setLocalData(prev => ({ ...prev, bankName }));
+      setErrors(prev => ({ ...prev, bankNameError: false }));
+      setIsDropdownOpen(false);
+    };
+
+    const [errors, setErrors] = useState({
+      bankNameError: false,
+      accountNumberError: false
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      const newLocalData = {
+        ...localData,
+        [name]: value,
+      };
+
+      if (name === 'accountNumber') {
+        if (value === "" || /[a-z]/.test(value) || /[A-Z]/.test(value) || /[!@#$%^&*()_+\-=\[\]{};':"\\|.,<>\/?]/.test(value) || value.length < 10) {
+          setErrors((prev) => ({ ...prev, accountNumberError: true }));
+        } else {
+          setErrors((prev) => ({ ...prev, accountNumberError: false }));
+        }
+      }
+
+      setLocalData(newLocalData);
+    }
+
+    function complete() {
+      if (errors.bankNameError || errors.accountNumberError || localData.bankName === "" || localData.accountNumber === "") {
+        return true;
+      }
+
+      return false;
+    }
+
+    function handleSubmit(e: React.FormEvent) {
+      e.preventDefault();
+      onNext(localData)
+      // console.log(localData)
+    }
+
+    return (
+      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
+        <h2 className="text-2xl font-bold mb-4 text-black">
+          Bank Details
+        </h2>
+        <p className="text-sm text-[#8C8B90] mb-6">
+          Provide your bank details to ensure smooth withdrawals and payouts.
+        </p>
+
+        <form action="" onSubmit={handleSubmit}>
+          {/* Bank Name */}
+          <div className="mb-6">
+            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="bankName">
+              Bank Name
+            </label>
+
+            <select
+              name="bankName"
+              value={localData.bankName}
+              className="hidden"
+              onChange={handleChange}
+            >
+              <option value="">Select Bank</option>
+              {banks.map(bank => (
+                <option key={bank.name} value={bank.name}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+
+            <div className='relative w-full'>
+              <button
+                type="button"
+                className="w-full p-3 border border-[#D9D9D9] text-black rounded-xl flex items-center justify-between"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <div className="flex items-center gap-3">
+                  {localData.bankName ? (
+                    <>
+                      <Image
+                        src={banks.find(b => b.name === localData.bankName)?.image || ''}
+                        alt=""
+                        width={24}
+                        height={24}
+                      />
+                      <span>{localData.bankName}</span>
+                    </>
+                  ) : (
+                    <span className="text-[#7C7C7A]">Select Bank</span>
+                  )}
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#000"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`lucide lucide-chevron-down transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {/* Dropdown options */}
+              {isDropdownOpen && (
+                <div className="absolute w-full mt-2 bg-white border border-[#D9D9D9] rounded-xl shadow-lg z-10">
+                  {banks.map(bank => (
+                    <div
+                      key={bank.name}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleBankSelect(bank.name)}
+                    >
+                      <Image
+                        src={bank.image}
+                        alt=""
+                        width={24}
+                        height={24}
+                      />
+                      <span className="text-[#1F1E22]">{bank.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {errors.bankNameError &&
+              <div className='flex gap-1 items-center'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#d02a2a" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                <span className="text-sm text-[#D02A2A] font-medium">
+                  Please select a bank name
+                </span>
+              </div>
+            }
+          </div>
+
+          {/* Account Number */}
+          <div className="mb-4">
+            <label className="block text-base font-medium text-[#1F1E22] mb-2" htmlFor="accountNumber">
+              Account Number
+            </label>
+            <input
+              id="accountNumber"
+              type="text"
+              placeholder="Enter Amount Number"
+              className="w-full p-3 border border-[#D9D9D9] text-black rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
+              name='accountNumber'
+              value={localData.accountNumber}
+              onChange={handleChange}
+              maxLength={10}
+            />
+            {errors.accountNumberError &&
+              <div className='flex gap-1 items-center'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#d02a2a" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                <span className="text-sm text-[#D02A2A] font-medium">
+                  Please enter a valid account number
                 </span>
               </div>
             }
@@ -826,7 +1317,7 @@ export default function Home() {
     )
   }
 
-  function StepThree({ data, onNext }: StepThreeProps) {
+  function StepFive({ data, onNext }: StepFiveProps) {
     // For real file uploads, you'd store and manage files in state
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
@@ -923,23 +1414,23 @@ export default function Home() {
         {/* Card Container */}
         <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
           {/* Heading */}
-          <h1 className="text-2xl font-bold mb-2 text-black">KYC Uploads</h1>
+          <h1 className="text-2xl font-bold mb-2 text-black">KYC Documents</h1>
           <p className="text-sm text-gray-500 mb-6">
-            Secure your account by uploading the required KYC documents for verification.
+            Upload the following documents to verify your KYC
           </p>
 
           {/* List of Required Documents */}
           <div className="mb-6">
             <h2 className="text-base font-semibold text-black mb-2">
-              List of Documents required
+              Documents required
             </h2>
-            { data.accountType === "Individual Account" ?
+            {data.accountType === "Personal Account" ?
               <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
                 <li>Government ID</li>
                 <li>Proof of Address</li>
                 <li>Selfie Verification</li>
               </ul> :
-              data.accountType === "Business Account" && 
+              data.accountType === "Business Account" &&
               <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
                 <li>Certificate Of Incorporation</li>
                 <li>Valid ID of Business Owner</li>
@@ -1118,32 +1609,40 @@ export default function Home() {
 
       {/* Main container */}
       <div className="flex flex-col items-center justify-center min-h-screen px-4">
-        <div className="mb-8">
-          <Image
-            src="/logo.svg"
-            alt="Logo"
-            width={80}
-            height={80}
-          />
-        </div>
+        {success ?
+          <>
+            <div className="my-8">
+              <Image
+                src="/logo.svg"
+                alt="Logo"
+                width={144}
+                height={80}
+              />
+            </div>
 
-        {/* Title */}
-        <h1 className="text-white text-[2rem] text-center font-bold mb-2">
-          Account Creation & KYC
-        </h1>
+            <h1 className="text-white text-[2rem] text-center font-bold mb-2">
+              Account Creation & KYC
+            </h1>
 
-        <ProgressBar />
+            <ProgressBar />
 
-        {/* Registration Card */}
-        {currentStep === 1 && (
-          <StepOne data={formData} onNext={handleNext} />
-        )}
-        {currentStep === 2 && (
-          <StepTwo data={formData} onNext={handleNext} />
-        )}
-        {currentStep === 3 && (
-          <StepThree data={formData} onNext={handleNext} />
-        )}
+            {currentStep === 1 && (
+              <StepOne data={formData} onNext={handleNext} />
+            )}
+            {currentStep === 2 && (
+              <StepTwo data={formData} onNext={handleNext} />
+            )}
+            {currentStep === 3 && (
+              <StepThree data={formData} onNext={handleNext} />
+            )}
+            {currentStep === 4 && (
+              <StepFour data={formData} onNext={handleNext} />
+            )}
+            {currentStep === 5 && (
+              <StepFive data={formData} onNext={handleNext} />
+            )}
+          </> : <Success />
+        }
       </div>
     </div>
   )
