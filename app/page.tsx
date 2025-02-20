@@ -111,7 +111,7 @@ export default function Home() {
 
   async function handleSubmitAll(finalData: FormData) {
     try {
-      const response = await fetch("https://samplebackend.onrender.com/api", {
+      const response = await fetch("https://saturndigitalbackend.onrender.com/api", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
