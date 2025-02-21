@@ -367,8 +367,26 @@ function StepOne({ data, onNext }: StepOneProps) {
   };
 
   function complete() {
-    if (errors.nameError || errors.emailError || errors.passwordError || errors.confirmPasswordError || localData.fullName === "" || localData.email === "" || localData.password === "" || localData.confirmPassword === "") {
-      // alert("Please fill out all required fields and ensure your password meets the criteria.");
+    let nameValid = false;
+    let emailValid = false;
+    if (localData.accountType === "Personal Account") {
+      nameValid = localData.fullName.trim() !== "";
+      emailValid = localData.email.trim() !== "";
+    } else {
+      nameValid = localData.businessName.trim() !== "";
+      emailValid = localData.businessEmail.trim() !== "";
+    }
+    if (
+      errors.nameError ||
+      errors.emailError ||
+      errors.passwordError ||
+      errors.confirmPasswordError ||
+      !nameValid ||
+      !emailValid ||
+      localData.password === "" ||
+      localData.confirmPassword === ""
+    ) {
+      // alert("Please fill out all required fields correctly.");
       return true;
     }
 
