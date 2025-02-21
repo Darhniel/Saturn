@@ -115,6 +115,8 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "https://saturn-eight.vercel.app",
+          "Access-Control-Allow-Methods": "POST"
         },
         body: JSON.stringify(finalData),
       });
