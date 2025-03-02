@@ -46,7 +46,7 @@ export default function Home() {
   // For individuals the steps are [1,2,3,4,5]
   // For businesss the flow is [1,2,5]
   const [stepOrder, setStepOrder] = useState<number[]>([1, 2, 3, 4, 5]);
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(4);
   const currentStep = stepOrder[currentStepIndex];
   const [loading, setLoading] = useState(false)
 
