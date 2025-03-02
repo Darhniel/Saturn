@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/24/outline';
@@ -11,10 +11,10 @@ import 'react-datepicker/dist/react-datepicker.css';
 // ===================================================================
 
 type FormData = {
-  // For Personal Accounts
+  // For individuals
   fullName?: string;
   email?: string;
-  // For Business Accounts
+  // For businesss
   businessName?: string;
   businessEmail?: string;
   password: string;
@@ -25,7 +25,7 @@ type FormData = {
   investment: string;
   portfolioType: string[];
   // Account type
-  accountType: "Personal Account" | "Business Account";
+  userType: "individual" | "business";
   // Step 3 (only for personal flow)
   investmentAmount: string;
   investmentType: string;
@@ -43,11 +43,12 @@ type FormData = {
 
 export default function Home() {
   // For navigation we keep an array of steps.
-  // For Personal accounts the steps are [1,2,3,4,5]
-  // For Business accounts the flow is [1,2,5]
+  // For individuals the steps are [1,2,3,4,5]
+  // For businesss the flow is [1,2,5]
   const [stepOrder, setStepOrder] = useState<number[]>([1, 2, 3, 4, 5]);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const currentStep = stepOrder[currentStepIndex];
+  const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -60,7 +61,7 @@ export default function Home() {
     address: "",
     investment: "",
     portfolioType: [],
-    accountType: "Personal Account",
+    userType: "individual",
     investmentAmount: "",
     investmentType: "",
     investmentDuration: "",
@@ -78,9 +79,9 @@ export default function Home() {
     setFormData(prev => ({ ...prev, ...stepData }));
 
     // If we are on Step One then update the flow based on account type.
-    // For Business Account, we skip steps 3 and 4.
+    // For business, we skip steps 3 and 4.
     if (currentStep === 1) {
-      if (stepData.accountType === "Business Account") {
+      if (stepData.userType === "business") {
         setStepOrder([1, 2, 5]);
       } else {
         setStepOrder([1, 2, 3, 4, 5]);
@@ -110,6 +111,11 @@ export default function Home() {
   };
 
   async function handleSubmitAll(finalData: FormData) {
+    setLoading(true);
+
+    const controller = new AbortController();
+
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     try {
       const response = await fetch("https://saturndigitalbackend.onrender.com/api", {
         method: "POST",
@@ -117,7 +123,11 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(finalData),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -125,9 +135,21 @@ export default function Home() {
       console.log("Submission successful:", result);
       setSuccess(true);
       alert("Submission Successful")
-    } catch (error) {
-      console.error("Error submitting data:", error);
-      alert("Submission failed. Please try again.");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          console.error("Submission timed out.");
+          alert("Submission timed out. Please try again.");
+        } else {
+          console.error("Error submitting data:", error.message);
+          alert("Submission failed. Please try again.");
+        }
+      } else {
+        console.error("Unexpected error", error);
+        alert("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,8 +190,12 @@ export default function Home() {
         />
       </div>
 
-      <div className="flex flex-col items-center justify-center min-h-screen px-4">
-        {success ? (
+      {<div className="flex flex-col items-center justify-center min-h-screen px-4">
+        {loading ? (
+          <div className="mb-4">
+            <Spinner />
+          </div>
+        ) : success ? (
           <Success />
         ) : (
           <>
@@ -197,7 +223,7 @@ export default function Home() {
             )}
           </>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -264,7 +290,39 @@ function Success() {
   );
 }
 
-// ===================================================================
+// ====================================================================
+// SPINNER COMPONENT
+// ==================================================================== 
+
+function Spinner() {
+  return (
+    <div className="flex justify-center items-center">
+      <svg
+        className="animate-spin h-20 w-20 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v8H4z"
+        />
+      </svg>
+    </div>
+  );
+};
+
+
+//  ===================================================================
 // STEP ONE COMPONENT
 // ===================================================================
 
@@ -282,7 +340,7 @@ function StepOne({ data, onNext }: StepOneProps) {
     businessEmail: string;
     password: string;
     confirmPassword: string;
-    accountType: "Personal Account" | "Business Account";
+    userType: "individual" | "business";
   }
   const [localData, setLocalData] = useState<LocalData>({
     fullName: data.fullName || "",
@@ -291,7 +349,7 @@ function StepOne({ data, onNext }: StepOneProps) {
     businessEmail: data.businessEmail || "",
     password: data.password || "",
     confirmPassword: data.confirmPassword || "",
-    accountType: data.accountType || "Personal Account"
+    userType: data.userType || "individual"
   });
 
   const [errors, setErrors] = useState({
@@ -367,7 +425,7 @@ function StepOne({ data, onNext }: StepOneProps) {
   function complete() {
     let nameValid = false;
     let emailValid = false;
-    if (localData.accountType === "Personal Account") {
+    if (localData.userType === "individual") {
       nameValid = localData.fullName.trim() !== "";
       emailValid = localData.email.trim() !== "";
     } else {
@@ -396,7 +454,7 @@ function StepOne({ data, onNext }: StepOneProps) {
     // Ensure the proper fields are filled in based on account type.
     let nameValid = false;
     let emailValid = false;
-    if (localData.accountType === "Personal Account") {
+    if (localData.userType === "individual") {
       nameValid = localData.fullName.trim() !== "";
       emailValid = localData.email.trim() !== "";
     } else {
@@ -417,13 +475,13 @@ function StepOne({ data, onNext }: StepOneProps) {
       return;
     }
     // Pass data upward—use different keys based on account type.
-    if (localData.accountType === "Personal Account") {
+    if (localData.userType === "individual") {
       onNext({
         fullName: localData.fullName,
         email: localData.email,
         password: localData.password,
         confirmPassword: localData.confirmPassword,
-        accountType: localData.accountType
+        userType: localData.userType
       });
     } else {
       onNext({
@@ -431,7 +489,7 @@ function StepOne({ data, onNext }: StepOneProps) {
         businessEmail: localData.businessEmail,
         password: localData.password,
         confirmPassword: localData.confirmPassword,
-        accountType: localData.accountType
+        userType: localData.userType
       });
     }
   };
@@ -447,53 +505,53 @@ function StepOne({ data, onNext }: StepOneProps) {
       <form onSubmit={handleSubmit}>
         {/* Account Type Selection */}
         <div className="mb-4 flex gap-12">
-          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.accountType === 'Personal Account' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
+          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.userType === 'individual' ? "border-[#AE6EFF] bg-[#F3E9FF]" : "border-[#EBEBEB]"}`}>
             <div className="relative">
               <input
                 type="radio"
-                name="accountType"
-                value="Personal Account"
+                name="userType"
+                value="individual"
                 className="block w-5 h-5 mb-3 appearance-none peer opacity-0 cursor-pointer"
-                checked={localData.accountType === 'Personal Account'}
+                checked={localData.userType === 'individual'}
                 onChange={handleChange}
               />
               <div className="absolute w-5 h-5 border rounded-full border-[#D0D5DD] top-1 peer-checked:border-purple-600 transition-all"></div>
               <div className="peer-checked:bg-purple-600 peer-checked:block w-3 h-3 rounded-full top-2 left-1 absolute"></div>
             </div>
-            <span className={`text-base ${localData.accountType === 'Personal Account' ? 'font-semibold text-purple-600' : 'text-gray-800'}`}>
-              Personal Account
+            <span className={`text-base ${localData.userType === 'individual' ? 'font-semibold text-purple-600' : 'text-gray-800'}`}>
+              individual
             </span>
           </label>
 
-          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.accountType === 'Business Account' ? "border-purple-600 bg-purple-100" : "border-gray-300"}`}>
+          <label className={`w-full cursor-pointer p-6 border rounded-xl ${localData.userType === 'business' ? "border-purple-600 bg-purple-100" : "border-gray-300"}`}>
             <div className="relative">
               <input
                 type="radio"
-                name="accountType"
-                value="Business Account"
+                name="userType"
+                value="business"
                 className="block w-5 h-5 mb-3 appearance-none peer opacity-0 cursor-pointer"
-                checked={localData.accountType === 'Business Account'}
+                checked={localData.userType === 'business'}
                 onChange={handleChange}
               />
               <div className="absolute w-5 h-5 border rounded-full border-gray-400 top-1 peer-checked:border-purple-600 transition-all"></div>
               <div className="peer-checked:bg-purple-600 peer-checked:block w-3 h-3 rounded-full top-2 left-1 absolute"></div>
             </div>
-            <span className={`text-base ${localData.accountType === 'Business Account' ? 'font-semibold text-purple-600' : 'text-gray-800'}`}>
-              Business Account
+            <span className={`text-base ${localData.userType === 'business' ? 'font-semibold text-purple-600' : 'text-gray-800'}`}>
+              business
             </span>
           </label>
         </div>
         {/* Name Field */}
         <div className="mb-4">
           <label className="block text-base font-medium text-gray-800 mb-2">
-            {localData.accountType === "Personal Account" ? "Full Name" : "Business Name"}
+            {localData.userType === "individual" ? "Full Name" : "Business Name"}
           </label>
           <input
             type="text"
-            name={localData.accountType === "Personal Account" ? "fullName" : "businessName"}
-            placeholder={localData.accountType === "Personal Account" ? "Enter Full Name" : "Enter Business Name"}
+            name={localData.userType === "individual" ? "fullName" : "businessName"}
+            placeholder={localData.userType === "individual" ? "Enter Full Name" : "Enter Business Name"}
             className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
-            value={localData.accountType === "Personal Account" ? localData.fullName : localData.businessName}
+            value={localData.userType === "individual" ? localData.fullName : localData.businessName}
             onChange={handleChange}
           />
           {errors.nameError && (
@@ -512,14 +570,14 @@ function StepOne({ data, onNext }: StepOneProps) {
         {/* Email Field */}
         <div className="mb-4">
           <label className="block text-base font-medium text-gray-800 mb-2">
-            {localData.accountType === "Personal Account" ? "Email Address" : "Business Email"}
+            {localData.userType === "individual" ? "Email Address" : "Business Email"}
           </label>
           <input
             type="email"
-            name={localData.accountType === "Personal Account" ? "email" : "businessEmail"}
-            placeholder={localData.accountType === "Personal Account" ? "Enter Email Address" : "Enter Business Email"}
+            name={localData.userType === "individual" ? "email" : "businessEmail"}
+            placeholder={localData.userType === "individual" ? "Enter Email Address" : "Enter Business Email"}
             className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
-            value={localData.accountType === "Personal Account" ? localData.email : localData.businessEmail}
+            value={localData.userType === "individual" ? localData.email : localData.businessEmail}
             onChange={handleChange}
           />
           {errors.emailError && (
@@ -975,7 +1033,7 @@ function StepTwo({ data, onNext }: StepTwoProps) {
 }
 
 // ===================================================================
-// STEP THREE COMPONENT (only for Personal Accounts)
+// STEP THREE COMPONENT (only for individuals)
 // ===================================================================
 
 type StepThreeProps = {
@@ -1178,7 +1236,7 @@ function StepThree({ data, onNext }: StepThreeProps) {
 }
 
 // ===================================================================
-// STEP FOUR COMPONENT (only for Personal Accounts)
+// STEP FOUR COMPONENT (only for individuals)
 // ===================================================================
 
 type StepFourProps = {
@@ -1393,289 +1451,607 @@ function StepFour({ data, onNext }: StepFourProps) {
 // ===================================================================
 
 type StepFiveProps = {
-  data: FormData;
+  data: FormData & { userType: "individual" | "business" };
   onNext: (data: Partial<FormData>) => void;
 };
 
 interface UploadedFile {
   file: File;
-  previewUrl: string;  // For images
-  progress: number;    // 0-100
-  error?: string;      // Error message if invalid
+  previewUrl: string; // For images
+  progress: number;   // 0-100
+  error?: string;     // Error message if invalid
 }
 
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function StepFive({ data, onNext }: StepFiveProps) {
-  // For real file uploads, you'd store and manage files in state
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  // Determine required document count based on user type
+  const requiredDocs = data.userType === "business" ? 3 : 2;
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFile[]>([]);
+  const [selfieFile, setSelfieFile] = useState<UploadedFile | null>(null);
 
-  useEffect(() => {
-    // Initialize from parent's data.files
-    const initialFiles = data.files.map(file => ({
-      file,
-      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
-      progress: 100,
-      error: undefined
-    }));
-    setUploadedFiles(initialFiles);
-  }, [data.files]);
+  // For camera capture of selfie
+  const [capturing, setCapturing] = useState(false);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleProceed = () => {
-    const files = uploadedFiles.map(uf => uf.file);
-    onNext({ files });
-  };
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'starting' | 'ready'>('idle');
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = e.target;
-    if (!files) return;
+  // -------------------------------
+  // Document Upload Section
+  // -------------------------------
+  const handleDocumentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { files } = e.target;
+      if (!files) return;
 
-    const newFiles: UploadedFile[] = [];
-
-    // Convert FileList to an array
-    Array.from(files).forEach((file) => {
-      // Validate file type
-      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-        newFiles.push({
-          file,
-          previewUrl: "",
-          progress: 0,
-          error: "Unsupported file type",
-        });
-        return;
-      }
-
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        newFiles.push({
-          file,
-          previewUrl: "",
-          progress: 0,
-          error: "File size exceeds 5MB limit",
-        });
-        return;
-      }
-
-      // Create a preview URL if it's an image
-      let previewUrl = "";
-      if (file.type === "image/jpeg" || file.type === "image/png") {
-        previewUrl = URL.createObjectURL(file);
-      }
-
-      newFiles.push({
-        file,
-        previewUrl,
-        progress: 0,
+      const newDocs: UploadedFile[] = [];
+      Array.from(files).forEach((file) => {
+          // Validate file type
+          if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+              newDocs.push({
+                  file,
+                  previewUrl: "",
+                  progress: 0,
+                  error: "Unsupported file type",
+              });
+              return;
+          }
+          // Validate file size
+          if (file.size > MAX_FILE_SIZE) {
+              newDocs.push({
+                  file,
+                  previewUrl: "",
+                  progress: 0,
+                  error: "File size exceeds limit",
+              });
+              return;
+          }
+          // Create a preview URL for image files
+          let previewUrl = "";
+          if (file.type.startsWith("image/")) {
+              previewUrl = URL.createObjectURL(file);
+          }
+          newDocs.push({
+              file,
+              previewUrl,
+              progress: 100,
+          });
       });
-    });
 
-    // Add the new files to state
-    setUploadedFiles((prev) => [...prev, ...newFiles]);
-
-    // Reset the input value so user can re-upload the same file if needed
-    e.target.value = "";
+      // Only allow up to requiredDocs
+      setUploadedDocuments((prev) => {
+          const combined = [...prev, ...newDocs];
+          return combined.slice(0, requiredDocs);
+      });
+      e.target.value = "";
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setUploadedFiles((prev) =>
-        prev.map((f) => {
-          // Skip errored files or completed ones
-          if (f.error || f.progress >= 100) return f;
+  // -------------------------------
+  // Selfie Capture Section
+  // -------------------------------
+  // const startCamera = async () => {
+  //     try {
+  //         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  //         setVideoStream(stream);
+  //         setCapturing(true);
+  //         if (videoRef.current) {
+  //             videoRef.current.srcObject = stream;
+  //         }
+  //     } catch (error) {
+  //         console.error("Error accessing camera", error);
+  //         alert("Unable to access camera");
+  //     }
+  // };
 
-          const newProgress = f.progress + 10;
-          return { ...f, progress: Math.min(newProgress, 100) };
-        })
+  // const startCamera = async () => {
+  //     setCameraError(null);
+  //     setCameraStatus('starting');
+
+  //     try {
+  //         // Try to get specific front camera
+  //         const devices = await navigator.mediaDevices.enumerateDevices();
+  //         const videoDevices = devices.filter(d => d.kind === 'videoinput');
+  //         const frontCamera = videoDevices.find(d => d.label.toLowerCase().includes('front'));
+
+  //         const constraints = frontCamera?.deviceId
+  //             ? { deviceId: { exact: frontCamera.deviceId } }
+  //             : { facingMode: 'user' };
+
+  //         const stream = await navigator.mediaDevices.getUserMedia({
+  //             video: constraints
+  //         });
+
+  //         if (videoRef.current) {
+  //             const video = videoRef.current;
+  //             video.srcObject = stream;
+
+  //             // Wait for video to actually start playing
+  //             await video.play().catch(err => {
+  //                 throw new Error('Camera failed to start: ' + err.message);
+  //             });
+
+  //             // Verify video is actually producing frames
+  //             await new Promise<void>((resolve, reject) => {
+  //                 const timeout = setTimeout(() => {
+  //                     reject(new Error('Camera timeout - no frames received'));
+  //                 }, 5000);
+
+  //                 video.onplaying = () => {
+  //                     clearTimeout(timeout);
+  //                     resolve();
+  //                 };
+  //             });
+
+  //             setCameraStatus('ready');
+  //             setCapturing(true);
+  //         }
+  //     } catch (error) {
+  //         console.error("Camera error:", error);
+  //         setCameraStatus('idle');
+  //         setCameraError(
+  //             error instanceof Error ? error.message : 'Failed to access camera'
+  //         );
+  //         stopCamera();
+  //     }
+  // };
+
+  const startCamera = async () => {
+      setCameraError(null);
+      setCameraStatus('starting');
+
+      try {
+          // Feature detection for mediaDevices
+          if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+              throw new Error('Camera access is not supported by your browser');
+          }
+
+          let constraints: MediaStreamConstraints['video'] = { facingMode: 'user' };
+
+          try {
+              // Attempt to find front camera (might fail on some mobile browsers)
+              const devices = await navigator.mediaDevices.enumerateDevices();
+              const videoDevices = devices.filter(d => d.kind === 'videoinput');
+              const frontCamera = videoDevices.find(d =>
+                  d.label.toLowerCase().includes('front') ||
+                  d.label.toLowerCase().includes('user')
+              );
+
+              if (frontCamera?.deviceId) {
+                  constraints = { deviceId: { exact: frontCamera.deviceId } };
+              }
+          } catch (enumerationError) {
+              // Fallback to generic facingMode if enumeration fails
+              console.warn('Camera enumeration failed, using facingMode', enumerationError);
+              constraints = { facingMode: 'user' };
+          }
+
+          const stream = await navigator.mediaDevices.getUserMedia({
+              video: constraints
+          });
+
+          if (videoRef.current) {
+              const video = videoRef.current;
+              video.srcObject = stream;
+
+              // Wait for video to actually start playing
+              await video.play().catch((err: { message: string; }) => {
+                  throw new Error('Camera failed to start: ' + err.message);
+              });
+
+              // Verify video is actually producing frames
+              await new Promise<void>((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                      reject(new Error('Camera timeout - no frames received'));
+                  }, 5000);
+
+                  video.onplaying = () => {
+                      clearTimeout(timeout);
+                      resolve();
+                  };
+              });
+
+              setCameraStatus('ready');
+              setCapturing(true);
+          }
+      } catch (error) {
+          console.error("Camera error:", error);
+          setCameraStatus('idle');
+          setCameraError(
+              error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.'
+          );
+          stopCamera();
+      }
+  };
+
+  // const captureSelfie = () => {
+  //     console.log("clicked 1")
+  //     if (!videoRef.current) return;
+  //     console.log("clicked 2")
+
+  //     const video = videoRef.current;
+  //     // Check that the video has loaded dimensions
+  //     const width = video.videoWidth;
+  //     const height = video.videoHeight;
+  //     if (width === 0 || height === 0) {
+  //         console.log("clicked 4")
+
+  //         // Wait a little and try again or attach a listener
+  //         video.onloadedmetadata = () => {
+  //             captureSelfie();
+  //         };
+  //         return;
+  //     }
+
+  //     console.log("clicked 3")
+
+  //     // Create an off-screen canvas with proper dimensions
+  //     const canvas = document.createElement("canvas");
+  //     canvas.width = width;
+  //     canvas.height = height;
+  //     const ctx = canvas.getContext("2d");
+  //     if (!ctx) {
+  //         console.error("Could not get canvas context");
+  //         return;
+  //     }
+  //     ctx.drawImage(video, 0, 0, width, height);
+
+  //     // Use toBlob to create a File object from the canvas image
+  //     canvas.toBlob((blob) => {
+  //         if (blob) {
+  //             const file = new File([blob], "selfie.png", { type: "image/png" });
+  //             const previewUrl = URL.createObjectURL(file);
+  //             console.log("Selfie captured:", previewUrl);
+  //             setSelfieFile({
+  //                 file,
+  //                 previewUrl,
+  //                 progress: 100,
+  //             });
+  //         } else {
+  //             console.error("Failed to capture selfie blob");
+  //         }
+  //     }, "image/png");
+
+  //     stopCamera();
+  // };
+
+  const captureSelfie = () => {
+      if (!videoRef.current) return;
+
+      const video = videoRef.current;
+      const maxAttempts = 10;
+      let attempts = 0;
+
+      const checkReadiness = () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+              console.error("Camera never became ready");
+              setCameraError('Camera failed to initialize');
+              stopCamera();
+              return;
+          }
+
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+              actuallyCapture();
+          } else {
+              setTimeout(checkReadiness, 100);
+          }
+      };
+
+      const actuallyCapture = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+              setCameraError('Failed to capture image');
+              return;
+          }
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob((blob) => {
+              if (blob) {
+                  const file = new File([blob], "selfie.png", { type: "image/png" });
+                  setSelfieFile({
+                      file,
+                      previewUrl: URL.createObjectURL(file),
+                      progress: 100,
+                  });
+                  stopCamera();
+              } else {
+                  setCameraError('Failed to capture photo');
+              }
+          }, "image/png");
+      };
+
+      checkReadiness();
+  };
+
+
+  const stopCamera = () => {
+      if (videoStream) {
+          videoStream.getTracks().forEach((track) => track.stop());
+      }
+      setVideoStream(null);
+      setCapturing(false);
+  };
+
+
+  // -------------------------------
+  // Updated Camera UI Section
+  // -------------------------------
+  const renderCameraInterface = () => {
+      if (cameraError) {
+          return (
+              <div className="text-center p-4 border rounded-lg bg-red-50">
+                  <p className="text-red-600 mb-2">{cameraError}</p>
+                  <button
+                      onClick={startCamera}
+                      className="py-2 px-4 bg-purple-600 text-white rounded"
+                  >
+                      Retry Camera
+                  </button>
+              </div>
+          );
+      }
+
+      {
+          cameraError && (
+              <div className="text-red-600 text-sm mt-2">
+                  {cameraError.includes('not supported') ? (
+                      <>
+                          Your browser doesn't support camera access.
+                          Try updating your browser or using Chrome/Firefox.
+                      </>
+                  ) : (
+                      cameraError
+                  )}
+              </div>
+          )
+      }
+
+      if (cameraStatus === 'starting') {
+          return (
+              <div className="text-center p-4 border rounded-lg bg-blue-50">
+                  <div className="animate-spin inline-block w-8 h-8 border-4 border-purple-500 rounded-full border-t-transparent mb-4"></div>
+                  <p className="text-sm text-gray-600">Initializing camera...</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                      Please allow camera access if prompted
+                  </p>
+              </div>
+          );
+      }
+
+      if (capturing) {
+          return (
+              <div className="flex flex-col items-center">
+                  <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full max-w-[35rem] rounded-md border"
+                  />
+                  <div className="mt-4 flex gap-2">
+                      <button
+                          type="button"
+                          onClick={captureSelfie}
+                          className="py-2 px-4 rounded-md bg-green-600 text-white"
+                      >
+                          Capture Selfie
+                      </button>
+                      <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="py-2 px-4 rounded-md bg-gray-600 text-white"
+                      >
+                          Cancel
+                      </button>
+                  </div>
+              </div>
+          );
+      }
+
+      return (
+          <button
+              type="button"
+              onClick={startCamera}
+              className="w-full py-2 rounded-md bg-purple-600 text-white"
+          >
+              Open Camera to Take Selfie
+          </button>
       );
-    }, 500); // increments progress every 0.5s
+  };
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Remove a file from the list
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  // -------------------------------
+  // Proceed handler
+  // -------------------------------
+  const handleProceed = () => {
+      const finalFiles = [...uploadedDocuments.map((doc) => doc.file)];
+      if (selfieFile) {
+          finalFiles.push(selfieFile.file);
+      }
+      onNext({ files: finalFiles });
   };
 
   return (
-    <div>
-      {/* Card Container */}
-      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9">
-        {/* Heading */}
-        <h1 className="text-2xl font-bold mb-2 text-black">KYC Documents</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Upload the following documents to verify your KYC
-        </p>
+      <div>
+          <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9 mx-auto">
+              <h1 className="text-2xl font-bold mb-2 text-black">KYC Documents</h1>
+              <p className="text-sm text-gray-500 mb-6">
+                  Upload the following documents to verify your KYC
+              </p>
 
-        {/* List of Required Documents */}
-        <div className="mb-6">
-          <h2 className="text-base font-semibold text-black mb-2">
-            Documents required
-          </h2>
-          {data.accountType === "Personal Account" ?
-            <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
-              <li>Government ID</li>
-              <li>Proof of Address</li>
-              <li>Selfie Verification</li>
-            </ul> :
-            data.accountType === "Business Account" &&
-            <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
-              <li>Certificate Of Incorporation</li>
-              <li>Valid ID of Business Owner</li>
-              <li>Proof of Business Address</li>
-              <li>Selfie Verification</li>
-            </ul>
-          }
-        </div>
-
-        {/* Upload Document Section */}
-        <div className="mb-6">
-          <label
-            htmlFor="uploadDocument"
-            className="block text-base font-medium text-black mb-2"
-          >
-            Upload Document
-          </label>
-          <div className="relative border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer text-gray-500 flex flex-col items-center">
-            <Image
-              src={"/icon.svg"}
-              alt=""
-              width={32}
-              height={32}
-              className=""
-            />
-            <p className="font-medium">Click to upload</p>
-            <p className="text-xs">Supported file includes JPG, PNG, PDF</p>
-            <input
-              type="file"
-              id="uploadDocument"
-              multiple
-              onChange={handleFileChange} // Uncomment to handle actual file uploads
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Note: Acceptable document must be less than 3 months old
-          </p>
-        </div>
-
-        {/* Example: Preview of an uploaded file */}
-        <div className="space-y-4 mb-6">
-          {uploadedFiles.map((fileObj, index) => (
-            <div
-              key={index}
-              className="border rounded-md p-3 flex items-center gap-3 relative"
-            >
-              {/* If it's an image and no error, show preview */}
-              {!fileObj.error && fileObj.previewUrl ? (
-                <Image
-                  src={fileObj.previewUrl}
-                  alt={fileObj.file.name}
-                  className="w-12 h-12 object-cover rounded"
-                  width={48}
-                  height={48}
-                />
-              ) : (
-                // Otherwise, show PDF icon or error icon
-                <div className="w-12 h-12 flex items-center justify-center bg-gray-100 text-gray-500 rounded">
-                  {fileObj.file.type === "application/pdf" && !fileObj.error ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-6 h-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
+              {/* List of Required Documents */}
+              <div className="mb-6">
+                  <h2 className="text-base font-semibold text-black mb-2">Documents required</h2>
+                  {data.userType === "individual" ? (
+                      <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
+                          <li>Government ID</li>
+                          <li>Proof of Address</li>
+                          <li>Selfie Verification</li>
+                      </ul>
                   ) : (
-                    // Show error or a generic icon
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-6 h-6 text-red-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728"
-                      />
-                    </svg>
+                      data.userType === "business" && (
+                          <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
+                              <li>Certificate Of Incorporation</li>
+                              <li>Valid ID of Business Owner</li>
+                              <li>Proof of Business Address</li>
+                              <li>Selfie Verification</li>
+                          </ul>
+                      )
                   )}
-                </div>
-              )}
-
-              {/* File details */}
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-700 truncate">
-                  {fileObj.file.name}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {(fileObj.file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-                {fileObj.error ? (
-                  <p className="text-xs text-red-500 font-medium mt-1">
-                    {fileObj.error}
-                  </p>
-                ) : (
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full"
-                      style={{ width: `${fileObj.progress}%` }}
-                    />
-                  </div>
-                )}
               </div>
 
-              {/* Delete icon & progress text */}
-              <div className="flex items-center space-x-2 text-gray-500">
-                <button
-                  className="focus:outline-none hover:text-red-600"
-                  title="Remove"
-                  onClick={() => removeFile(index)}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
+              {/* Documents Upload Section */}
+              <div className="mb-6">
+                  <label htmlFor="uploadDocuments" className="block text-base font-medium text-black mb-2">
+                      Upload Documents ({uploadedDocuments.length}/{requiredDocs})
+                  </label>
+                  <div
+                      className={`relative border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer text-gray-500 flex flex-col items-center ${uploadedDocuments.length >= requiredDocs ? "opacity-50 pointer-events-none" : ""
+                          }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-8V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m-4 0h12"
-                    />
-                  </svg>
-                </button>
-                {!fileObj.error && (
-                  <span className="text-sm text-gray-400">{fileObj.progress}%</span>
-                )}
+                      <Image src="/icon.svg" alt="" width={32} height={32} />
+                      <p className="font-medium">Click to upload</p>
+                      <p className="text-xs">Supported file types: JPG, PNG, PDF</p>
+                      <input
+                          type="file"
+                          id="uploadDocuments"
+                          multiple
+                          onChange={handleDocumentsChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Please upload {requiredDocs} documents</p>
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Proceed Button */}
-        <button
-          type="button"
-          className={`w-full text-white py-2 rounded-md font-medium ${uploadedFiles.length === 0 ? "bg-[#D9D9D9]" : "bg-[#8627FF]"}`}
-          disabled={uploadedFiles.length === 0}
-          onClick={handleProceed}
-        >
-          Proceed to Take Selfie
-        </button>
+              <div className="space-y-4 mb-6">
+                  {uploadedDocuments.map((fileObj, index) => (
+                      <div key={index} className="border rounded-md p-3 flex items-center gap-3 relative">
+                          {/* Show preview for image files */}
+                          {!fileObj.error && fileObj.previewUrl ? (
+                              <Image
+                                  src={fileObj.previewUrl}
+                                  alt={fileObj.file.name}
+                                  className="w-12 h-12 object-cover rounded"
+                                  width={48}
+                                  height={48}
+                              />
+                          ) : (
+                              <div className="w-12 h-12 flex items-center justify-center bg-gray-100 text-gray-500 rounded">
+                                  {fileObj.file.type === "application/pdf" && !fileObj.error ? (
+                                      <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="w-6 h-6"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                      >
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                      </svg>
+                                  ) : (
+                                      <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="w-6 h-6 text-red-500"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                      >
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                                      </svg>
+                                  )}
+                              </div>
+                          )}
+                          <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-700 truncate">{fileObj.file.name}</p>
+                              <p className="text-xs text-gray-400">{(fileObj.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                              {fileObj.error ? (
+                                  <p className="text-xs text-red-500 font-medium mt-1">{fileObj.error}</p>
+                              ) : (
+                                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${fileObj.progress}%` }} />
+                                  </div>
+                              )}
+                          </div>
+                          <div className="flex items-center space-x-2 text-gray-500">
+                              <button
+                                  className="focus:outline-none hover:text-red-600"
+                                  title="Remove"
+                                  onClick={() =>
+                                      setUploadedDocuments((prev) => prev.filter((_, i) => i !== index))
+                                  }
+                              >
+                                  <svg
+                                      className="w-5 h-5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                      viewBox="0 0 24 24"
+                                  >
+                                      <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-8V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m-4 0h12"
+                                      />
+                                  </svg>
+                              </button>
+                              {!fileObj.error && <span className="text-sm text-gray-400">{fileObj.progress}%</span>}
+                          </div>
+                      </div>
+                  ))}
+              </div>
+
+              {/* -------------------------------
+          Selfie Capture Section
+      ------------------------------- */}
+              <div className="mb-6">
+                  <label className="block text-base font-medium text-black mb-2">
+                      Selfie Verification
+                  </label>
+                  {selfieFile ? (
+                      <div className="mt-4 flex items-center gap-3">
+                          <Image
+                              src={selfieFile.previewUrl}
+                              alt="Selfie"
+                              className="w-12 h-12 object-cover rounded"
+                              width={48}
+                              height={48}
+                          />
+                          <p className="text-sm font-medium text-gray-700 truncate">Selfie Captured</p>
+                          <button
+                              type="button"
+                              onClick={() => setSelfieFile(null)}
+                              className="py-1 px-2 bg-yellow-500 text-white rounded"
+                          >
+                              Retake
+                          </button>
+                      </div>
+                  ) : (
+                      renderCameraInterface()
+                  )}
+              </div>
+
+              {/* -------------------------------
+          Proceed Button
+      ------------------------------- */}
+              <button
+                  type="button"
+                  className={`w-full text-white py-2 rounded-md font-medium ${uploadedDocuments.length < requiredDocs || !selfieFile
+                      ? "bg-[#D9D9D9]"
+                      : "bg-[#8627FF]"
+                      }`}
+                  disabled={uploadedDocuments.length < requiredDocs || !selfieFile}
+                  onClick={handleProceed}
+              >
+                  Proceed
+              </button>
+          </div>
       </div>
-    </div>
   );
 }
