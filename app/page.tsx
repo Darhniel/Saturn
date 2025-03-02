@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Check } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/24/outline';
@@ -1483,49 +1483,49 @@ function StepFive({ data, onNext }: StepFiveProps) {
   // Document Upload Section
   // -------------------------------
   const handleDocumentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { files } = e.target;
-      if (!files) return;
+    const { files } = e.target;
+    if (!files) return;
 
-      const newDocs: UploadedFile[] = [];
-      Array.from(files).forEach((file) => {
-          // Validate file type
-          if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-              newDocs.push({
-                  file,
-                  previewUrl: "",
-                  progress: 0,
-                  error: "Unsupported file type",
-              });
-              return;
-          }
-          // Validate file size
-          if (file.size > MAX_FILE_SIZE) {
-              newDocs.push({
-                  file,
-                  previewUrl: "",
-                  progress: 0,
-                  error: "File size exceeds limit",
-              });
-              return;
-          }
-          // Create a preview URL for image files
-          let previewUrl = "";
-          if (file.type.startsWith("image/")) {
-              previewUrl = URL.createObjectURL(file);
-          }
-          newDocs.push({
-              file,
-              previewUrl,
-              progress: 100,
-          });
+    const newDocs: UploadedFile[] = [];
+    Array.from(files).forEach((file) => {
+      // Validate file type
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        newDocs.push({
+          file,
+          previewUrl: "",
+          progress: 0,
+          error: "Unsupported file type",
+        });
+        return;
+      }
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        newDocs.push({
+          file,
+          previewUrl: "",
+          progress: 0,
+          error: "File size exceeds limit",
+        });
+        return;
+      }
+      // Create a preview URL for image files
+      let previewUrl = "";
+      if (file.type.startsWith("image/")) {
+        previewUrl = URL.createObjectURL(file);
+      }
+      newDocs.push({
+        file,
+        previewUrl,
+        progress: 100,
       });
+    });
 
-      // Only allow up to requiredDocs
-      setUploadedDocuments((prev) => {
-          const combined = [...prev, ...newDocs];
-          return combined.slice(0, requiredDocs);
-      });
-      e.target.value = "";
+    // Only allow up to requiredDocs
+    setUploadedDocuments((prev) => {
+      const combined = [...prev, ...newDocs];
+      return combined.slice(0, requiredDocs);
+    });
+    e.target.value = "";
   };
 
   // -------------------------------
@@ -1598,71 +1598,71 @@ function StepFive({ data, onNext }: StepFiveProps) {
   // };
 
   const startCamera = async () => {
-      setCameraError(null);
-      setCameraStatus('starting');
+    setCameraError(null);
+    setCameraStatus('starting');
+
+    try {
+      // Feature detection for mediaDevices
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        throw new Error('Camera access is not supported by your browser');
+      }
+
+      let constraints: MediaStreamConstraints['video'] = { facingMode: 'user' };
 
       try {
-          // Feature detection for mediaDevices
-          if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-              throw new Error('Camera access is not supported by your browser');
-          }
+        // Attempt to find front camera (might fail on some mobile browsers)
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const frontCamera = videoDevices.find(d =>
+          d.label.toLowerCase().includes('front') ||
+          d.label.toLowerCase().includes('user')
+        );
 
-          let constraints: MediaStreamConstraints['video'] = { facingMode: 'user' };
-
-          try {
-              // Attempt to find front camera (might fail on some mobile browsers)
-              const devices = await navigator.mediaDevices.enumerateDevices();
-              const videoDevices = devices.filter(d => d.kind === 'videoinput');
-              const frontCamera = videoDevices.find(d =>
-                  d.label.toLowerCase().includes('front') ||
-                  d.label.toLowerCase().includes('user')
-              );
-
-              if (frontCamera?.deviceId) {
-                  constraints = { deviceId: { exact: frontCamera.deviceId } };
-              }
-          } catch (enumerationError) {
-              // Fallback to generic facingMode if enumeration fails
-              console.warn('Camera enumeration failed, using facingMode', enumerationError);
-              constraints = { facingMode: 'user' };
-          }
-
-          const stream = await navigator.mediaDevices.getUserMedia({
-              video: constraints
-          });
-
-          if (videoRef.current) {
-              const video = videoRef.current;
-              video.srcObject = stream;
-
-              // Wait for video to actually start playing
-              await video.play().catch((err: { message: string; }) => {
-                  throw new Error('Camera failed to start: ' + err.message);
-              });
-
-              // Verify video is actually producing frames
-              await new Promise<void>((resolve, reject) => {
-                  const timeout = setTimeout(() => {
-                      reject(new Error('Camera timeout - no frames received'));
-                  }, 5000);
-
-                  video.onplaying = () => {
-                      clearTimeout(timeout);
-                      resolve();
-                  };
-              });
-
-              setCameraStatus('ready');
-              setCapturing(true);
-          }
-      } catch (error) {
-          console.error("Camera error:", error);
-          setCameraStatus('idle');
-          setCameraError(
-              error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.'
-          );
-          stopCamera();
+        if (frontCamera?.deviceId) {
+          constraints = { deviceId: { exact: frontCamera.deviceId } };
+        }
+      } catch (enumerationError) {
+        // Fallback to generic facingMode if enumeration fails
+        console.warn('Camera enumeration failed, using facingMode', enumerationError);
+        constraints = { facingMode: 'user' };
       }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: constraints
+      });
+
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.srcObject = stream;
+
+        // Wait for video to actually start playing
+        await video.play().catch((err: { message: string; }) => {
+          throw new Error('Camera failed to start: ' + err.message);
+        });
+
+        // Verify video is actually producing frames
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Camera timeout - no frames received'));
+          }, 5000);
+
+          video.onplaying = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+        });
+
+        setCameraStatus('ready');
+        setCapturing(true);
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+      setCameraStatus('idle');
+      setCameraError(
+        error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.'
+      );
+      stopCamera();
+    }
   };
 
   // const captureSelfie = () => {
@@ -1717,66 +1717,66 @@ function StepFive({ data, onNext }: StepFiveProps) {
   // };
 
   const captureSelfie = () => {
-      if (!videoRef.current) return;
+    if (!videoRef.current) return;
 
-      const video = videoRef.current;
-      const maxAttempts = 10;
-      let attempts = 0;
+    const video = videoRef.current;
+    const maxAttempts = 10;
+    let attempts = 0;
 
-      const checkReadiness = () => {
-          attempts++;
-          if (attempts > maxAttempts) {
-              console.error("Camera never became ready");
-              setCameraError('Camera failed to initialize');
-              stopCamera();
-              return;
-          }
+    const checkReadiness = () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        console.error("Camera never became ready");
+        setCameraError('Camera failed to initialize');
+        stopCamera();
+        return;
+      }
 
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-              actuallyCapture();
-          } else {
-              setTimeout(checkReadiness, 100);
-          }
-      };
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        actuallyCapture();
+      } else {
+        setTimeout(checkReadiness, 100);
+      }
+    };
 
-      const actuallyCapture = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
+    const actuallyCapture = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
 
-          if (!ctx) {
-              setCameraError('Failed to capture image');
-              return;
-          }
+      if (!ctx) {
+        setCameraError('Failed to capture image');
+        return;
+      }
 
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          canvas.toBlob((blob) => {
-              if (blob) {
-                  const file = new File([blob], "selfie.png", { type: "image/png" });
-                  setSelfieFile({
-                      file,
-                      previewUrl: URL.createObjectURL(file),
-                      progress: 100,
-                  });
-                  stopCamera();
-              } else {
-                  setCameraError('Failed to capture photo');
-              }
-          }, "image/png");
-      };
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], "selfie.png", { type: "image/png" });
+          setSelfieFile({
+            file,
+            previewUrl: URL.createObjectURL(file),
+            progress: 100,
+          });
+          stopCamera();
+        } else {
+          setCameraError('Failed to capture photo');
+        }
+      }, "image/png");
+    };
 
-      checkReadiness();
+    checkReadiness();
   };
 
 
   const stopCamera = () => {
-      if (videoStream) {
-          videoStream.getTracks().forEach((track) => track.stop());
-      }
-      setVideoStream(null);
-      setCapturing(false);
+    if (videoStream) {
+      videoStream.getTracks().forEach((track) => track.stop());
+    }
+    setVideoStream(null);
+    setCapturing(false);
   };
 
 
@@ -1784,274 +1784,274 @@ function StepFive({ data, onNext }: StepFiveProps) {
   // Updated Camera UI Section
   // -------------------------------
   const renderCameraInterface = () => {
-      if (cameraError) {
-          return (
-              <div className="text-center p-4 border rounded-lg bg-red-50">
-                  <p className="text-red-600 mb-2">{cameraError}</p>
-                  <button
-                      onClick={startCamera}
-                      className="py-2 px-4 bg-purple-600 text-white rounded"
-                  >
-                      Retry Camera
-                  </button>
-              </div>
-          );
-      }
-
-      {
-          cameraError && (
-              <div className="text-red-600 text-sm mt-2">
-                  {cameraError.includes('not supported') ? (
-                      <>
-                          Your browser doesn't support camera access.
-                          Try updating your browser or using Chrome/Firefox.
-                      </>
-                  ) : (
-                      cameraError
-                  )}
-              </div>
-          )
-      }
-
-      if (cameraStatus === 'starting') {
-          return (
-              <div className="text-center p-4 border rounded-lg bg-blue-50">
-                  <div className="animate-spin inline-block w-8 h-8 border-4 border-purple-500 rounded-full border-t-transparent mb-4"></div>
-                  <p className="text-sm text-gray-600">Initializing camera...</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                      Please allow camera access if prompted
-                  </p>
-              </div>
-          );
-      }
-
-      if (capturing) {
-          return (
-              <div className="flex flex-col items-center">
-                  <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="w-full max-w-[35rem] rounded-md border"
-                  />
-                  <div className="mt-4 flex gap-2">
-                      <button
-                          type="button"
-                          onClick={captureSelfie}
-                          className="py-2 px-4 rounded-md bg-green-600 text-white"
-                      >
-                          Capture Selfie
-                      </button>
-                      <button
-                          type="button"
-                          onClick={stopCamera}
-                          className="py-2 px-4 rounded-md bg-gray-600 text-white"
-                      >
-                          Cancel
-                      </button>
-                  </div>
-              </div>
-          );
-      }
-
+    if (cameraError) {
       return (
+        <div className="text-center p-4 border rounded-lg bg-red-50">
+          <p className="text-red-600 mb-2">{cameraError}</p>
           <button
-              type="button"
-              onClick={startCamera}
-              className="w-full py-2 rounded-md bg-purple-600 text-white"
+            onClick={startCamera}
+            className="py-2 px-4 bg-purple-600 text-white rounded"
           >
-              Open Camera to Take Selfie
+            Retry Camera
           </button>
+        </div>
       );
+    }
+
+    {
+      cameraError && (
+        <div className="text-red-600 text-sm mt-2">
+          {cameraError.includes('not supported') ? (
+            <>
+              Your browser doesn&apos;t support camera access.
+              Try updating your browser or using Chrome/Firefox.
+            </>
+          ) : (
+            cameraError
+          )}
+        </div>
+      )
+    }
+
+    if (cameraStatus === 'starting') {
+      return (
+        <div className="text-center p-4 border rounded-lg bg-blue-50">
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-purple-500 rounded-full border-t-transparent mb-4"></div>
+          <p className="text-sm text-gray-600">Initializing camera...</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Please allow camera access if prompted
+          </p>
+        </div>
+      );
+    }
+
+    if (capturing) {
+      return (
+        <div className="flex flex-col items-center">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full max-w-[35rem] rounded-md border"
+          />
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={captureSelfie}
+              className="py-2 px-4 rounded-md bg-green-600 text-white"
+            >
+              Capture Selfie
+            </button>
+            <button
+              type="button"
+              onClick={stopCamera}
+              className="py-2 px-4 rounded-md bg-gray-600 text-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={startCamera}
+        className="w-full py-2 rounded-md bg-purple-600 text-white"
+      >
+        Open Camera to Take Selfie
+      </button>
+    );
   };
 
   // -------------------------------
   // Proceed handler
   // -------------------------------
   const handleProceed = () => {
-      const finalFiles = [...uploadedDocuments.map((doc) => doc.file)];
-      if (selfieFile) {
-          finalFiles.push(selfieFile.file);
-      }
-      onNext({ files: finalFiles });
+    const finalFiles = [...uploadedDocuments.map((doc) => doc.file)];
+    if (selfieFile) {
+      finalFiles.push(selfieFile.file);
+    }
+    onNext({ files: finalFiles });
   };
 
   return (
-      <div>
-          <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9 mx-auto">
-              <h1 className="text-2xl font-bold mb-2 text-black">KYC Documents</h1>
-              <p className="text-sm text-gray-500 mb-6">
-                  Upload the following documents to verify your KYC
-              </p>
+    <div>
+      <div className="w-full max-w-[35rem] bg-white rounded-2xl shadow-md border-2 border-[#D2AEFF] p-9 mx-auto">
+        <h1 className="text-2xl font-bold mb-2 text-black">KYC Documents</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Upload the following documents to verify your KYC
+        </p>
 
-              {/* List of Required Documents */}
-              <div className="mb-6">
-                  <h2 className="text-base font-semibold text-black mb-2">Documents required</h2>
-                  {data.userType === "individual" ? (
-                      <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
-                          <li>Government ID</li>
-                          <li>Proof of Address</li>
-                          <li>Selfie Verification</li>
-                      </ul>
+        {/* List of Required Documents */}
+        <div className="mb-6">
+          <h2 className="text-base font-semibold text-black mb-2">Documents required</h2>
+          {data.userType === "individual" ? (
+            <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
+              <li>Government ID</li>
+              <li>Proof of Address</li>
+              <li>Selfie Verification</li>
+            </ul>
+          ) : (
+            data.userType === "business" && (
+              <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
+                <li>Certificate Of Incorporation</li>
+                <li>Valid ID of Business Owner</li>
+                <li>Proof of Business Address</li>
+                <li>Selfie Verification</li>
+              </ul>
+            )
+          )}
+        </div>
+
+        {/* Documents Upload Section */}
+        <div className="mb-6">
+          <label htmlFor="uploadDocuments" className="block text-base font-medium text-black mb-2">
+            Upload Documents ({uploadedDocuments.length}/{requiredDocs})
+          </label>
+          <div
+            className={`relative border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer text-gray-500 flex flex-col items-center ${uploadedDocuments.length >= requiredDocs ? "opacity-50 pointer-events-none" : ""
+              }`}
+          >
+            <Image src="/icon.svg" alt="" width={32} height={32} />
+            <p className="font-medium">Click to upload</p>
+            <p className="text-xs">Supported file types: JPG, PNG, PDF</p>
+            <input
+              type="file"
+              id="uploadDocuments"
+              multiple
+              onChange={handleDocumentsChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Please upload {requiredDocs} documents</p>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          {uploadedDocuments.map((fileObj, index) => (
+            <div key={index} className="border rounded-md p-3 flex items-center gap-3 relative">
+              {/* Show preview for image files */}
+              {!fileObj.error && fileObj.previewUrl ? (
+                <Image
+                  src={fileObj.previewUrl}
+                  alt={fileObj.file.name}
+                  className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
+                />
+              ) : (
+                <div className="w-12 h-12 flex items-center justify-center bg-gray-100 text-gray-500 rounded">
+                  {fileObj.file.type === "application/pdf" && !fileObj.error ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-6 h-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
                   ) : (
-                      data.userType === "business" && (
-                          <ul className="list-disc ml-5 space-y-1 text-gray-700 text-sm">
-                              <li>Certificate Of Incorporation</li>
-                              <li>Valid ID of Business Owner</li>
-                              <li>Proof of Business Address</li>
-                              <li>Selfie Verification</li>
-                          </ul>
-                      )
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-6 h-6 text-red-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                    </svg>
                   )}
-              </div>
-
-              {/* Documents Upload Section */}
-              <div className="mb-6">
-                  <label htmlFor="uploadDocuments" className="block text-base font-medium text-black mb-2">
-                      Upload Documents ({uploadedDocuments.length}/{requiredDocs})
-                  </label>
-                  <div
-                      className={`relative border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer text-gray-500 flex flex-col items-center ${uploadedDocuments.length >= requiredDocs ? "opacity-50 pointer-events-none" : ""
-                          }`}
-                  >
-                      <Image src="/icon.svg" alt="" width={32} height={32} />
-                      <p className="font-medium">Click to upload</p>
-                      <p className="text-xs">Supported file types: JPG, PNG, PDF</p>
-                      <input
-                          type="file"
-                          id="uploadDocuments"
-                          multiple
-                          onChange={handleDocumentsChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-700 truncate">{fileObj.file.name}</p>
+                <p className="text-xs text-gray-400">{(fileObj.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                {fileObj.error ? (
+                  <p className="text-xs text-red-500 font-medium mt-1">{fileObj.error}</p>
+                ) : (
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${fileObj.progress}%` }} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Please upload {requiredDocs} documents</p>
+                )}
               </div>
-
-              <div className="space-y-4 mb-6">
-                  {uploadedDocuments.map((fileObj, index) => (
-                      <div key={index} className="border rounded-md p-3 flex items-center gap-3 relative">
-                          {/* Show preview for image files */}
-                          {!fileObj.error && fileObj.previewUrl ? (
-                              <Image
-                                  src={fileObj.previewUrl}
-                                  alt={fileObj.file.name}
-                                  className="w-12 h-12 object-cover rounded"
-                                  width={48}
-                                  height={48}
-                              />
-                          ) : (
-                              <div className="w-12 h-12 flex items-center justify-center bg-gray-100 text-gray-500 rounded">
-                                  {fileObj.file.type === "application/pdf" && !fileObj.error ? (
-                                      <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          className="w-6 h-6"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                          strokeWidth={2}
-                                      >
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                      </svg>
-                                  ) : (
-                                      <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          className="w-6 h-6 text-red-500"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                          strokeWidth={2}
-                                      >
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
-                                      </svg>
-                                  )}
-                              </div>
-                          )}
-                          <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-700 truncate">{fileObj.file.name}</p>
-                              <p className="text-xs text-gray-400">{(fileObj.file.size / 1024 / 1024).toFixed(2)} MB</p>
-                              {fileObj.error ? (
-                                  <p className="text-xs text-red-500 font-medium mt-1">{fileObj.error}</p>
-                              ) : (
-                                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${fileObj.progress}%` }} />
-                                  </div>
-                              )}
-                          </div>
-                          <div className="flex items-center space-x-2 text-gray-500">
-                              <button
-                                  className="focus:outline-none hover:text-red-600"
-                                  title="Remove"
-                                  onClick={() =>
-                                      setUploadedDocuments((prev) => prev.filter((_, i) => i !== index))
-                                  }
-                              >
-                                  <svg
-                                      className="w-5 h-5"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                      viewBox="0 0 24 24"
-                                  >
-                                      <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-8V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m-4 0h12"
-                                      />
-                                  </svg>
-                              </button>
-                              {!fileObj.error && <span className="text-sm text-gray-400">{fileObj.progress}%</span>}
-                          </div>
-                      </div>
-                  ))}
+              <div className="flex items-center space-x-2 text-gray-500">
+                <button
+                  className="focus:outline-none hover:text-red-600"
+                  title="Remove"
+                  onClick={() =>
+                    setUploadedDocuments((prev) => prev.filter((_, i) => i !== index))
+                  }
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-8V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m-4 0h12"
+                    />
+                  </svg>
+                </button>
+                {!fileObj.error && <span className="text-sm text-gray-400">{fileObj.progress}%</span>}
               </div>
+            </div>
+          ))}
+        </div>
 
-              {/* -------------------------------
+        {/* -------------------------------
           Selfie Capture Section
       ------------------------------- */}
-              <div className="mb-6">
-                  <label className="block text-base font-medium text-black mb-2">
-                      Selfie Verification
-                  </label>
-                  {selfieFile ? (
-                      <div className="mt-4 flex items-center gap-3">
-                          <Image
-                              src={selfieFile.previewUrl}
-                              alt="Selfie"
-                              className="w-12 h-12 object-cover rounded"
-                              width={48}
-                              height={48}
-                          />
-                          <p className="text-sm font-medium text-gray-700 truncate">Selfie Captured</p>
-                          <button
-                              type="button"
-                              onClick={() => setSelfieFile(null)}
-                              className="py-1 px-2 bg-yellow-500 text-white rounded"
-                          >
-                              Retake
-                          </button>
-                      </div>
-                  ) : (
-                      renderCameraInterface()
-                  )}
-              </div>
+        <div className="mb-6">
+          <label className="block text-base font-medium text-black mb-2">
+            Selfie Verification
+          </label>
+          {selfieFile ? (
+            <div className="mt-4 flex items-center gap-3">
+              <Image
+                src={selfieFile.previewUrl}
+                alt="Selfie"
+                className="w-12 h-12 object-cover rounded"
+                width={48}
+                height={48}
+              />
+              <p className="text-sm font-medium text-gray-700 truncate">Selfie Captured</p>
+              <button
+                type="button"
+                onClick={() => setSelfieFile(null)}
+                className="py-1 px-2 bg-yellow-500 text-white rounded"
+              >
+                Retake
+              </button>
+            </div>
+          ) : (
+            renderCameraInterface()
+          )}
+        </div>
 
-              {/* -------------------------------
+        {/* -------------------------------
           Proceed Button
       ------------------------------- */}
-              <button
-                  type="button"
-                  className={`w-full text-white py-2 rounded-md font-medium ${uploadedDocuments.length < requiredDocs || !selfieFile
-                      ? "bg-[#D9D9D9]"
-                      : "bg-[#8627FF]"
-                      }`}
-                  disabled={uploadedDocuments.length < requiredDocs || !selfieFile}
-                  onClick={handleProceed}
-              >
-                  Proceed
-              </button>
-          </div>
+        <button
+          type="button"
+          className={`w-full text-white py-2 rounded-md font-medium ${uploadedDocuments.length < requiredDocs || !selfieFile
+            ? "bg-[#D9D9D9]"
+            : "bg-[#8627FF]"
+            }`}
+          disabled={uploadedDocuments.length < requiredDocs || !selfieFile}
+          onClick={handleProceed}
+        >
+          Proceed
+        </button>
       </div>
+    </div>
   );
 }
