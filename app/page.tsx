@@ -1799,6 +1799,7 @@ function StepFive({ data, onNext }: StepFiveProps) {
     }
 
     {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       cameraError === typeof "string" && (
         <div className="text-red-600 text-sm mt-2">
           {cameraError.includes('not supported') ? (
