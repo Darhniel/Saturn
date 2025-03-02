@@ -1799,7 +1799,7 @@ function StepFive({ data, onNext }: StepFiveProps) {
     }
 
     {
-      cameraError && (
+      cameraError === typeof "string" && (
         <div className="text-red-600 text-sm mt-2">
           {cameraError.includes('not supported') ? (
             <>
